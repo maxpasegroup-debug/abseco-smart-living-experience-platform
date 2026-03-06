@@ -1,0 +1,38 @@
+{
+  "name": "abseco",
+  "version": "1.0.0",
+  "description": "ABSECO Smart Living Experience Platform",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "keywords": [
+    "abseco",
+    "pwa",
+    "nextjs",
+    "smart-home"
+  ],
+  "author": "ABSECO",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "framer-motion": "^12.35.0",
+    "mongoose": "^9.2.4",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "@types/react": "^18.3.26",
+    "@types/react-dom": "^18.3.7",
+    "autoprefixer": "^10.4.27",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.33",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.18",
+    "typescript": "^5.9.3"
+  }
+}
