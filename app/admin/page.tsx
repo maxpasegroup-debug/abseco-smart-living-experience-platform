@@ -20,6 +20,12 @@ export default function AdminPage() {
           </div>
         ))}
       </div>
+      <a href="/admin/partners" className="glass-card block p-4 text-blue-300">
+        Open Partner Engine Dashboard →
+      </a>
+      <a href="/admin/whatsapp" className="glass-card block p-4 text-blue-300">
+        ABSECO WhatsApp Sales Engine →
+      </a>
     </section>
   );
 }

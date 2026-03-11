@@ -7,7 +7,7 @@ export const smartPackages: PackageItem[] = [
     id: "comfort-home",
     name: "Comfort Home",
     description: "Lighting, climate and voice control for day-to-day convenience.",
-    image: "https://images.unsplash.com/photo-1558449028-b53a39d100fc",
+    image: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3",
     homeTypes: ["Villa", "Apartment", "Under Construction"],
     estimatedRange: "AED 18,000 - 32,000",
     features: ["Smart lighting", "Climate scenes", "Voice assistant"]
@@ -61,5 +61,10 @@ export const scenes: AutomationScene[] = [
     id: "party",
     title: "Party Mode",
     description: "Accent lighting, playlist scenes, and guest climate zones activate."
+  },
+  {
+    id: "vacation",
+    title: "Vacation Mode",
+    description: "Simulated occupancy, perimeter monitoring, and remote control stay active."
   }
 ];

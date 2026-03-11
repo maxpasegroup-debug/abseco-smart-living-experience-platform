@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { Lead } from "@/lib/models/Lead";
+import { triggerWelcome, scheduleFollowUps } from "@/lib/services/whatsapp-engine";
 
 export async function GET() {
   try {
@@ -17,6 +18,16 @@ export async function POST(request: NextRequest) {
     const payload = await request.json();
     await connectDb();
     const lead = await Lead.create(payload);
+    const leadId = lead._id.toString();
+    const phone = lead.phone || "";
+    if (phone) {
+      try {
+        await triggerWelcome(leadId, phone);
+        await scheduleFollowUps(leadId, phone);
+      } catch (waErr) {
+        console.error("WhatsApp welcome/follow-up error:", waErr);
+      }
+    }
     return NextResponse.json({ lead }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: "Failed to create lead", details: String(error) }, { status: 500 });
