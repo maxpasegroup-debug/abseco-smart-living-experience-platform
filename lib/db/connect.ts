@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
+import { getEnv } from "@/lib/env";
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
+const MONGODB_URI = getEnv().MONGODB_URI || "";
 
 declare global {
   // eslint-disable-next-line no-var

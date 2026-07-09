@@ -1,15 +1,31 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { createSession, setSessionCookie } from "@/lib/auth/session";
+import { verifyOtp } from "@/lib/auth/otp";
+import { apiError, apiOk, handleApiError } from "@/lib/errors/api";
+import { parseJson, z } from "@/lib/validation";
 
-// Placeholder verification endpoint for progressive auth integration.
+const otpVerifySchema = z.object({
+  phone: z.string().min(7).max(20),
+  otp: z.string().min(4).max(8)
+});
+
 export async function POST(request: NextRequest) {
-  const { phone, otp } = await request.json();
-  if (!phone || !otp) {
-    return NextResponse.json({ error: "Phone and OTP are required" }, { status: 400 });
-  }
+  try {
+    const { phone, otp } = await parseJson(request, otpVerifySchema);
+    if (!verifyOtp(phone, otp)) {
+      return apiError("UNAUTHENTICATED", "Invalid or expired OTP.", 401);
+    }
 
-  return NextResponse.json({
-    ok: true,
-    token: "demo-token-replace-with-jwt",
-    user: { phone, role: "customer" }
-  });
+    const normalizedPhone = phone.replace(/\D/g, "");
+    const session = await createSession({
+      id: `customer:${normalizedPhone}`,
+      phone: normalizedPhone,
+      role: "customer"
+    });
+    const response = apiOk({ user: session.user });
+    await setSessionCookie(response, session);
+    return response;
+  } catch (error) {
+    return handleApiError(error);
+  }
 }

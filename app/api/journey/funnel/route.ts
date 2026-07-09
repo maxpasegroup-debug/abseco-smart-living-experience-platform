@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { JourneyEvent } from "@/lib/models/JourneyEvent";
 import { Proposal } from "@/lib/models/Proposal";
 import { Consultation } from "@/lib/models/Consultation";
+import { apiOk, handleApiError } from "@/lib/errors/api";
 
 export async function GET() {
   try {
@@ -15,7 +15,7 @@ export async function GET() {
     const builders = await JourneyEvent.distinct("lead_id", { event_name: "smart_home_builder_completed" });
     const consultations = await Consultation.distinct("lead_id", {});
     const proposalsSent = await Proposal.distinct("lead_id", { status: "sent" });
-    const dealsClosed = await Proposal.distinct("lead_id", { status: "accepted" });
+    const dealsClosed = await Proposal.distinct("lead_id", { status: { $in: ["accepted", "approved", "converted"] } });
 
     const steps = [
       { name: "Visitors", count: visitors.length },
@@ -26,9 +26,9 @@ export async function GET() {
       { name: "Deals Closed", count: dealsClosed.length }
     ];
 
-    return NextResponse.json({ steps });
+    return apiOk({ steps });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 

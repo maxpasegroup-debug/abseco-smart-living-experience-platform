@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { Lead } from "@/lib/models/Lead";
+import { apiOk, handleApiError } from "@/lib/errors/api";
 
 export async function GET() {
   try {
@@ -16,9 +16,9 @@ export async function GET() {
       interest: l.priority,
       last_interaction: l.last_activity || l.created_at
     }));
-    return NextResponse.json({ contacts });
+    return apiOk({ contacts });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 

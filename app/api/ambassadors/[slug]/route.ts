@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { Ambassador } from "@/lib/models/Ambassador";
 import { AmbassadorVisit } from "@/lib/models/AmbassadorVisit";
 import { Lead } from "@/lib/models/Lead";
+import { apiError, apiOk, handleApiError } from "@/lib/errors/api";
 
 export async function GET(
   request: NextRequest,
@@ -12,7 +13,7 @@ export async function GET(
     await connectDb();
     const amb = await Ambassador.findOne({ showcase_slug: params.slug });
     if (!amb) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return apiError("NOT_FOUND", "Not found.", 404);
     }
     const lead = await Lead.findById(amb.lead_id);
     // log visit
@@ -30,9 +31,9 @@ export async function GET(
       { _id: amb._id },
       { $inc: { total_visits: 1 } }
     );
-    return NextResponse.json({ ambassador: amb, lead });
+    return apiOk({ ambassador: amb, lead });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 

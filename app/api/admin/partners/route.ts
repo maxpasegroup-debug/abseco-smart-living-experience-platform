@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { Lead } from "@/lib/models/Lead";
 import { Partner } from "@/lib/models/Partner";
+import { apiOk, handleApiError } from "@/lib/errors/api";
 
 export async function GET() {
   try {
@@ -25,7 +25,7 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({
+    return apiOk({
       totalPartners: partners.length,
       leadsByPartner: rows.reduce((sum, row) => sum + row.leads, 0),
       conversions: rows.reduce((sum, row) => sum + row.sales, 0),
@@ -33,6 +33,6 @@ export async function GET() {
       rows
     });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to load admin partner metrics", details: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

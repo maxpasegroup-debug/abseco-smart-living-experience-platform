@@ -5,6 +5,7 @@ import { ShowroomNav } from "@/components/ShowroomNav";
 import { ShowroomBottomNav } from "@/components/ShowroomBottomNav";
 import { PWARegister } from "@/components/PWARegister";
 import { SmartPlanProvider } from "@/lib/context/SmartPlanContext";
+import { PlannerProvider } from "@/lib/context/PlannerContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora" });
@@ -22,9 +23,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.variable} ${sora.variable} min-h-screen pb-20`}>
         <PWARegister />
         <SmartPlanProvider>
-          <ShowroomNav />
-          <main className="mx-auto w-full max-w-6xl px-4 py-4">{children}</main>
-          <ShowroomBottomNav />
+          <PlannerProvider>
+            <ShowroomNav />
+            <main className="mx-auto w-full max-w-6xl px-4 py-4">{children}</main>
+            <ShowroomBottomNav />
+          </PlannerProvider>
         </SmartPlanProvider>
       </body>
     </html>

@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { JourneyEvent } from "@/lib/models/JourneyEvent";
 import { Lead } from "@/lib/models/Lead";
 import { Proposal } from "@/lib/models/Proposal";
 import { Consultation } from "@/lib/models/Consultation";
+import { apiOk, handleApiError } from "@/lib/errors/api";
 
 export async function GET() {
   try {
@@ -38,7 +38,7 @@ export async function GET() {
     ]);
 
     const dealsBySource = await Proposal.aggregate([
-      { $match: { status: "accepted" } },
+      { $match: { status: { $in: ["accepted", "approved", "converted"] } } },
       {
         $lookup: {
           from: "leads",
@@ -87,7 +87,7 @@ export async function GET() {
       event_name: "smart_home_builder_completed"
     });
     const builderDeals = await Proposal.countDocuments({
-      status: "accepted",
+      status: { $in: ["accepted", "approved", "converted"] },
       lead_id: { $in: builderUsers }
     });
     if (builderUsers.length && builderDeals) {
@@ -104,13 +104,13 @@ export async function GET() {
       insights.push("Camera experience users request consultations faster.");
     }
 
-    return NextResponse.json({
+    return apiOk({
       campaigns,
       product_interest,
       insights
     });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 

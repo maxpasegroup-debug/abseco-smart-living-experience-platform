@@ -1,6 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { Partner } from "@/lib/models/Partner";
+import { apiError, apiOk, handleApiError } from "@/lib/errors/api";
+import { parseJson, z } from "@/lib/validation";
+
+const partnerJoinSchema = z.object({
+  name: z.string().trim().min(1),
+  phone: z.string().trim().min(7).max(20),
+  profession: z.string().trim().min(1),
+  city: z.string().trim().min(1),
+  years_experience: z.number().min(0),
+  company_name: z.string().optional()
+});
 
 function buildSlug(name: string) {
   return name
@@ -12,11 +23,11 @@ function buildSlug(name: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await parseJson(request, partnerJoinSchema);
     const { name, phone, profession, city, years_experience, company_name } = body;
 
-    if (!name || !phone || !profession || !city || !years_experience) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!name || !phone || !profession || !city || years_experience === undefined) {
+      return apiError("BAD_REQUEST", "Missing required fields.", 400);
     }
 
     await connectDb();
@@ -38,8 +49,7 @@ export async function POST(request: NextRequest) {
       commission_rate: profession === "Builder" || profession === "Architect" ? 6 : 4
     });
 
-    return NextResponse.json({
-      ok: true,
+    return apiOk({
       partner: {
         name: partner.name,
         partner_id: partner.partner_id,
@@ -49,6 +59,6 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    return NextResponse.json({ error: "Partner signup failed", details: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

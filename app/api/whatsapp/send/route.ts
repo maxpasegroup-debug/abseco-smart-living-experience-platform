@@ -1,36 +1,53 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { Message } from "@/lib/models/Message";
 import { queueMessage, processQueue } from "@/lib/services/whatsapp-engine";
+import { apiError, apiOk, handleApiError } from "@/lib/errors/api";
+import { parseJson, z } from "@/lib/validation";
+import { writeAuditLog } from "@/lib/audit";
+import { getSessionFromRequest } from "@/lib/auth/session";
+
+const whatsappSendSchema = z.object({
+  to: z.string().min(7).max(20),
+  message: z.string().trim().min(1).max(4000),
+  lead_id: z.string().optional(),
+  queue: z.boolean().optional()
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await parseJson(request, whatsappSendSchema);
     const { to, message, lead_id, queue: useQueue } = body;
-    if (!to || !message) {
-      return NextResponse.json({ error: "to and message required" }, { status: 400 });
-    }
     if (useQueue) {
       await queueMessage({ to, message, lead_id });
-      return NextResponse.json({ ok: true, queued: true });
+      return apiOk({ queued: true });
     }
     const { sendWhatsAppMessage } = await import("@/lib/services/whatsapp-provider");
     const result = await sendWhatsAppMessage({ to, message });
     if (result.ok && lead_id) {
       await connectDb();
       await Message.create({ lead_id, sender: "system", message, timestamp: new Date() });
+      await writeAuditLog({
+        request,
+        session: await getSessionFromRequest(request),
+        action: "lead_update",
+        target_type: "lead",
+        target_id: lead_id,
+        metadata: { event: "whatsapp_sent" }
+      });
     }
-    return NextResponse.json(result.ok ? { ok: true } : { ok: false, error: result.error }, { status: result.ok ? 200 : 400 });
+    if (!result.ok) return apiError("BAD_REQUEST", result.error || "WhatsApp send failed.", 400);
+    return apiOk({});
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return handleApiError(e);
   }
 }
 
 export async function GET() {
   try {
     const { processed, failed } = await processQueue();
-    return NextResponse.json({ ok: true, processed, failed });
+    return apiOk({ processed, failed });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return handleApiError(e);
   }
 }

@@ -1,10 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 export default function ConsultationBookingPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [consultationType, setConsultationType] = useState("online");
+
+  useEffect(() => {
+    const type = new URLSearchParams(window.location.search).get("type");
+    if (type) setConsultationType(type);
+  }, []);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -18,7 +24,13 @@ export default function ConsultationBookingPage() {
       construction_stage: data.get("construction_stage"),
       consultation_type: data.get("consultation_type"),
       date: data.get("date"),
-      time: data.get("time")
+      time: data.get("time"),
+      remarks: data.get("remarks"),
+      address: data.get("address"),
+      google_maps_link: data.get("google_maps_link"),
+      property_stage: data.get("property_stage"),
+      builder: data.get("builder"),
+      architect: data.get("architect")
     };
     setLoading(true);
     setMessage(null);
@@ -104,9 +116,15 @@ export default function ConsultationBookingPage() {
           <label className="block text-xs text-slate-400">Consultation Type</label>
           <select
             name="consultation_type"
+            value={consultationType}
+            onChange={(event) => setConsultationType(event.target.value)}
             className="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm"
           >
             <option value="online">Online Consultation</option>
+            <option value="video">Video Consultation</option>
+            <option value="phone">Phone Consultation</option>
+            <option value="whatsapp">WhatsApp Consultation</option>
+            <option value="showroom_visit">Showroom Visit</option>
             <option value="site_visit">Site Visit</option>
           </select>
         </div>
@@ -128,6 +146,59 @@ export default function ConsultationBookingPage() {
               className="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm"
             />
           </div>
+        </div>
+
+        {consultationType === "site_visit" && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label className="block text-xs text-slate-400">Address</label>
+              <input
+                name="address"
+                className="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs text-slate-400">Google Maps Link</label>
+              <input
+                name="google_maps_link"
+                className="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs text-slate-400">Property Stage</label>
+              <select
+                name="property_stage"
+                className="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm"
+              >
+                <option value="existing">Existing</option>
+                <option value="construction">Construction</option>
+                <option value="renovation">Renovation</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs text-slate-400">Builder</label>
+              <input
+                name="builder"
+                className="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs text-slate-400">Architect</label>
+              <input
+                name="architect"
+                className="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1">
+          <label className="block text-xs text-slate-400">Remarks</label>
+          <textarea
+            name="remarks"
+            rows={3}
+            className="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm"
+          />
         </div>
 
         {message && <p className="text-xs text-slate-300">{message}</p>}

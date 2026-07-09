@@ -1,17 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { Message } from "@/lib/models/Message";
+import { apiError, apiOk, handleApiError } from "@/lib/errors/api";
 
 export async function GET(request: NextRequest) {
   try {
     const lead_id = request.nextUrl.searchParams.get("lead_id");
     if (!lead_id) {
-      return NextResponse.json({ error: "lead_id required" }, { status: 400 });
+      return apiError("BAD_REQUEST", "lead_id is required.", 400);
     }
     await connectDb();
     const messages = await Message.find({ lead_id }).sort({ timestamp: 1 });
-    return NextResponse.json({ messages });
+    return apiOk({ messages });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return handleApiError(e);
   }
 }

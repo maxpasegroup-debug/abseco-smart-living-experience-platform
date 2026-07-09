@@ -1,9 +1,9 @@
-import { AIWizard } from "@/components/AIWizard";
+import { UnifiedSmartHomePlanner } from "@/components/planner/UnifiedSmartHomePlanner";
 
 export default function AIDesignerPage() {
   return (
     <section className="space-y-4">
-      <AIWizard />
+      <UnifiedSmartHomePlanner entry="ai-designer" />
     </section>
   );
 }

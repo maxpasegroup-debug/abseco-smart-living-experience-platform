@@ -1,6 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { SalesNotification } from "@/lib/models/SalesNotification";
+import { apiOk, handleApiError } from "@/lib/errors/api";
+import { parseJson, z } from "@/lib/validation";
+import { writeAuditLog } from "@/lib/audit";
+import { getSessionFromRequest } from "@/lib/auth/session";
+
+const notificationPatchSchema = z.object({
+  id: z.string().min(1),
+  read: z.boolean().optional()
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,21 +17,28 @@ export async function GET(request: NextRequest) {
     const unreadOnly = request.nextUrl.searchParams.get("unread") === "true";
     const query = unreadOnly ? { read: false } : {};
     const notifications = await SalesNotification.find(query).sort({ created_at: -1 }).limit(50);
-    return NextResponse.json({ notifications });
+    return apiOk({ notifications });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return handleApiError(e);
   }
 }
 
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await parseJson(request, notificationPatchSchema);
     const { id, read } = body;
-    if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
     await connectDb();
     await SalesNotification.updateOne({ _id: id }, { read: read !== false });
-    return NextResponse.json({ ok: true });
+    await writeAuditLog({
+      request,
+      session: await getSessionFromRequest(request),
+      action: "customer_change",
+      target_type: "sales_notification",
+      target_id: id,
+      metadata: { event: "notification_updated", read: read !== false }
+    });
+    return apiOk({});
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return handleApiError(e);
   }
 }

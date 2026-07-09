@@ -1,14 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { JourneyEvent } from "@/lib/models/JourneyEvent";
 import { Lead } from "@/lib/models/Lead";
+import { apiError, apiOk, handleApiError } from "@/lib/errors/api";
+import { parseJson, z } from "@/lib/validation";
+
+const journeyEventSchema = z.object({
+  lead_id: z.string().optional(),
+  event_name: z.string().trim().min(1),
+  metadata: z.record(z.unknown()).optional()
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await parseJson(request, journeyEventSchema);
     const { lead_id, event_name, metadata } = body;
     if (!event_name) {
-      return NextResponse.json({ error: "event_name is required" }, { status: 400 });
+      return apiError("BAD_REQUEST", "event_name is required.", 400);
     }
 
     await connectDb();
@@ -35,9 +43,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ ok: true });
+    return apiOk({});
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 

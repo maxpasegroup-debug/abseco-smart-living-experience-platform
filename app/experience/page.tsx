@@ -3,8 +3,14 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CameraExperiencePanel } from "@/components/showroom/CameraExperiencePanel";
+import { usePlanner } from "@/lib/context/PlannerContext";
+import { generatePlannerRecommendation } from "@/features/planner/recommendation";
 
 export default function ExperiencePage() {
+  const { plan } = usePlanner();
+  const recommendation = plan.recommendation || generatePlannerRecommendation(plan.answers);
+  const hasPlannerContext = plan.answers.rooms.length > 0 || recommendation.recommendedExperiences.length > 0;
+
   return (
     <div className="space-y-10 pb-16">
       <motion.div
@@ -19,6 +25,23 @@ export default function ExperiencePage() {
           See smart devices in your space. Tap ON / OFF to bring your room to life.
         </p>
       </motion.div>
+      {hasPlannerContext && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-5"
+        >
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-slate-500">
+            From your smart home plan
+          </p>
+          <p className="mt-2 text-sm text-slate-300">
+            {(plan.answers.rooms.length ? plan.answers.rooms : recommendation.recommendedRooms).join(", ")}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            {recommendation.recommendedExperiences.join(", ")}
+          </p>
+        </motion.div>
+      )}
       <CameraExperiencePanel />
 
       <motion.section

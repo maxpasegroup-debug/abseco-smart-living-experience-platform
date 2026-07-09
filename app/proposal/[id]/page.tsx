@@ -12,6 +12,8 @@ type Proposal = {
   estimated_cost_min?: number;
   estimated_cost_max?: number;
   currency: string;
+  pdf_url?: string;
+  status?: string;
 };
 
 type ProposalItem = {
@@ -26,6 +28,9 @@ export default function PublicProposalPage() {
   const params = useParams<{ id: string }>();
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [items, setItems] = useState<ProposalItem[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [checkoutToken, setCheckoutToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (!params?.id) return;
@@ -53,6 +58,51 @@ export default function PublicProposalPage() {
   const hasRange =
     typeof proposal.estimated_cost_min === "number" &&
     typeof proposal.estimated_cost_max === "number";
+
+  async function recordAction(action: "approved" | "rejected" | "revision_requested" | "viewed") {
+    setMessage(null);
+    const res = await fetch(`/api/proposals/${params.id}/activity`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setMessage(data.error?.message || data.error || "Unable to update proposal.");
+      return;
+    }
+    setProposal(data.proposal || proposal);
+    setOrderId(data.order?._id || null);
+    setCheckoutToken(data.order?.checkout_token || null);
+    setMessage(
+      action === "approved"
+        ? "Proposal approved. Your booking order is ready."
+        : action === "rejected"
+          ? "Proposal rejected. The sales team has been notified."
+          : action === "revision_requested"
+            ? "Change request sent to the sales team."
+            : "Proposal activity recorded."
+    );
+  }
+
+  function handleDownload() {
+    if (!proposal) return;
+    if (proposal.pdf_url) {
+      window.open(proposal.pdf_url, "_blank");
+      return;
+    }
+    setMessage("PDF download will be available after the final proposal is prepared.");
+  }
+
+  function handleShare() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: "ABSECO Smart Home Proposal", url }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(url);
+      setMessage("Proposal link copied.");
+    }
+  }
 
   return (
     <section className="space-y-6 pb-12">
@@ -150,22 +200,56 @@ export default function PublicProposalPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3 text-xs">
-          <Link href="/#consultation">
-            <span className="inline-block rounded-full bg-[#FF6A00] px-5 py-2 font-semibold text-white shadow-[0_0_18px_rgba(255,106,0,0.5)]">
-              Accept Proposal
-            </span>
-          </Link>
-          <Link href="/#consultation">
-            <span className="inline-block rounded-full border border-white/30 px-5 py-2 font-semibold text-slate-200 hover:border-white/50 hover:bg-white/5">
-              Request Changes
-            </span>
-          </Link>
-          <Link href="/#consultation">
+          <button
+            type="button"
+            onClick={() => recordAction("approved")}
+            className="inline-block rounded-full bg-[#FF6A00] px-5 py-2 font-semibold text-white shadow-[0_0_18px_rgba(255,106,0,0.5)]"
+          >
+            Approve
+          </button>
+          <button
+            type="button"
+            onClick={() => recordAction("revision_requested")}
+            className="inline-block rounded-full border border-white/30 px-5 py-2 font-semibold text-slate-200 hover:border-white/50 hover:bg-white/5"
+          >
+            Request Changes
+          </button>
+          <button
+            type="button"
+            onClick={() => recordAction("rejected")}
+            className="inline-block rounded-full border border-white/20 px-5 py-2 font-semibold text-slate-200 hover:border-white/40 hover:bg-white/5"
+          >
+            Reject
+          </button>
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="inline-block rounded-full border border-white/20 px-5 py-2 font-semibold text-slate-200 hover:border-white/40 hover:bg-white/5"
+          >
+            Download PDF
+          </button>
+          <button
+            type="button"
+            onClick={handleShare}
+            className="inline-block rounded-full border border-white/20 px-5 py-2 font-semibold text-slate-200 hover:border-white/40 hover:bg-white/5"
+          >
+            Share
+          </button>
+          <Link href="/consultation">
             <span className="inline-block rounded-full border border-white/20 px-5 py-2 font-semibold text-slate-200 hover:border-white/40 hover:bg-white/5">
-              Schedule Installation
+              Book Consultation
             </span>
           </Link>
         </div>
+        {message && <p className="w-full text-xs text-slate-300">{message}</p>}
+        {orderId && (
+          <Link
+            href={`/checkout/${orderId}${checkoutToken ? `?token=${checkoutToken}` : ""}`}
+            className="w-full text-xs font-semibold text-[#FF6A00]"
+          >
+            Continue to checkout
+          </Link>
+        )}
       </div>
     </section>
   );

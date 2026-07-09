@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { HomeTypeCard } from "@/components/HomeTypeCard";
 import { PackageCard } from "@/components/PackageCard";
-import { AuthGateModal } from "@/components/AuthGateModal";
 import { homeTypes, smartPackages } from "@/features/dashboard/data";
 
 export default function ExplorePage() {
-  const [authAction, setAuthAction] = useState<"" | "save this package">("");
+  const router = useRouter();
 
   return (
     <section className="space-y-4">
@@ -19,10 +18,9 @@ export default function ExplorePage() {
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {smartPackages.map((item) => (
-          <PackageCard key={item.id} item={item} onExplore={() => setAuthAction("save this package")} />
+          <PackageCard key={item.id} item={item} onExplore={() => router.push("/build")} />
         ))}
       </div>
-      <AuthGateModal isOpen={authAction !== ""} actionLabel={authAction} onClose={() => setAuthAction("")} />
     </section>
   );
 }

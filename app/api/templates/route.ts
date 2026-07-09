@@ -1,24 +1,34 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { Template } from "@/lib/models/Template";
+import { apiOk, handleApiError } from "@/lib/errors/api";
+import { parseJson, z } from "@/lib/validation";
+import { writeAuditLog } from "@/lib/audit";
+import { getSessionFromRequest } from "@/lib/auth/session";
+
+const templateCreateSchema = z.object({
+  channel: z.enum(["whatsapp", "email", "sms"]).default("whatsapp"),
+  name: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  body: z.string().trim().min(1),
+  media_url: z.string().url().optional(),
+  category: z.string().optional()
+});
 
 export async function GET() {
   try {
     await connectDb();
     const templates = await Template.find().sort({ created_at: -1 });
-    return NextResponse.json({ templates });
+    return apiOk({ templates });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await parseJson(request, templateCreateSchema);
     const { channel = "whatsapp", name, title, body: messageBody, media_url, category } = body;
-    if (!name || !title || !messageBody) {
-      return NextResponse.json({ error: "name, title, body are required" }, { status: 400 });
-    }
     await connectDb();
     const template = await Template.create({
       channel,
@@ -28,9 +38,17 @@ export async function POST(request: NextRequest) {
       media_url,
       category
     });
-    return NextResponse.json({ template }, { status: 201 });
+    await writeAuditLog({
+      request,
+      session: await getSessionFromRequest(request),
+      action: "customer_change",
+      target_type: "template",
+      target_id: template._id.toString(),
+      metadata: { event: "template_created", channel }
+    });
+    return apiOk({ template }, 201);
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 

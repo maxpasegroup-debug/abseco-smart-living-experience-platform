@@ -9,6 +9,8 @@ import {
   createConsultationRequest,
   notifySales
 } from "@/lib/services/whatsapp-engine";
+import { handleApiError } from "@/lib/errors/api";
+import { logger } from "@/lib/logger";
 
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -27,6 +29,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
+      const signature = request.headers.get("x-hub-signature-256");
+      if (!signature) {
+        logger.security("WhatsApp webhook missing signature");
+      }
+    }
     const body = await request.json();
     const entry = body?.entry?.[0];
     const changes = entry?.changes?.[0];
@@ -79,6 +87,6 @@ export async function POST(request: NextRequest) {
     await queueMessage({ to: phone, message: "Reply with 1 for ideas, 2 for consultation, 3 for installations.", lead_id: leadId });
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return handleApiError(e);
   }
 }

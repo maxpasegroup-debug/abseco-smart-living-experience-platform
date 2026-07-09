@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/db/connect";
 import { Campaign } from "@/lib/models/Campaign";
 import { Lead } from "@/lib/models/Lead";
 import { queueMessage } from "@/lib/services/whatsapp-engine";
+import { apiError, apiOk, handleApiError } from "@/lib/errors/api";
+import { getSessionFromRequest } from "@/lib/auth/session";
+import { writeAuditLog } from "@/lib/audit";
 
 export async function POST(
   _request: NextRequest,
@@ -11,7 +14,7 @@ export async function POST(
   try {
     await connectDb();
     const campaign = await Campaign.findById(params.id);
-    if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    if (!campaign) return apiError("NOT_FOUND", "Campaign not found.", 404);
     let query = {};
     if (campaign.segment === "new_leads") query = { status: "new" };
     else if (campaign.segment === "active_prospects") query = { status: { $in: ["contacted", "qualified"] } };
@@ -21,8 +24,16 @@ export async function POST(
       if (lead.phone) await queueMessage({ to: lead.phone, message: campaign.message, lead_id: lead._id.toString() });
     }
     await Campaign.updateOne({ _id: campaign._id }, { status: "sent", sent_at: new Date() });
-    return NextResponse.json({ ok: true, sent_to: leads.length });
+    await writeAuditLog({
+      request: _request,
+      session: await getSessionFromRequest(_request),
+      action: "customer_change",
+      target_type: "campaign",
+      target_id: params.id,
+      metadata: { event: "campaign_sent", sent_to: leads.length }
+    });
+    return apiOk({ sent_to: leads.length });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return handleApiError(e);
   }
 }

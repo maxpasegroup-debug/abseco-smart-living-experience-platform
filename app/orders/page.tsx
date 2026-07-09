@@ -1,10 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { OrderTimeline } from "@/components/showroom/OrderTimeline";
 
+type Order = {
+  _id: string;
+  order_number: string;
+  status: string;
+  payment_status: string;
+  booking_amount: number;
+  remaining_amount: number;
+};
+
 export default function OrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    fetch("/api/commerce/orders")
+      .then((response) => response.json())
+      .then((data) => setOrders(data.orders || []))
+      .catch(() => setOrders([]));
+  }, []);
+
   return (
     <div className="space-y-12 pb-16">
       <motion.h1
@@ -15,6 +34,23 @@ export default function OrdersPage() {
       >
         Orders
       </motion.h1>
+      {orders.length > 0 && (
+        <div className="space-y-3">
+          {orders.map((order) => (
+            <Link key={order._id} href={`/checkout/${order._id}`} className="glass-card block p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{order.order_number}</p>
+                  <p className="text-xs text-slate-400">{order.status} | {order.payment_status}</p>
+                </div>
+                <p className="text-xs text-slate-300">
+                  Booking INR {order.booking_amount.toLocaleString()}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
       <OrderTimeline />
       <Link href="/orders/plan" className="block">
         <motion.span
